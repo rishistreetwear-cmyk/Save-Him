@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Star Catcher ⭐</title>
+<style>
+:root{--bg:#14213d;--fg:#ffffff;--card:#1f3159;--accent:#fca311;--muted:#9fb3d9;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#14213d;--fg:#ffffff;--card:#1f3159;--accent:#fca311;--muted:#9fb3d9}}
+:root[data-theme="dark"]{--bg:#14213d;--fg:#fff;--card:#1f3159;--accent:#fca311;--muted:#9fb3d9}
+.love button{color:#fff}
+.love{--bg:#fff0f5;--fg:#4a1730;--card:#fff;--accent:#e6366f;--muted:#9a5b75}
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;display:flex;justify-content:center;overflow:hidden;touch-action:none}
+#app{position:relative;width:100%;max-width:420px;height:100%;display:flex;flex-direction:column}
+#hud{display:flex;justify-content:space-between;padding:12px 16px;font-weight:700;font-size:16px}
+#hud small{display:block;color:var(--muted);font-weight:500;font-size:12px}
+canvas{flex:1;width:100%;min-height:0;display:block}
+.overlay{position:absolute;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;gap:14px}
+.overlay.hidden{display:none}
+h1{margin:0;font-size:30px;color:var(--accent)}
+p{margin:0;line-height:1.5;max-width:320px}
+input{font-size:16px;padding:10px 14px;border-radius:12px;border:2px solid var(--accent);background:var(--card);color:var(--fg);text-align:center;width:200px}
+button{font-size:18px;font-weight:700;padding:12px 28px;border:0;border-radius:999px;background:var(--accent);color:#14213d;cursor:pointer}
+button.no{background:var(--card);color:var(--fg);border:2px solid var(--muted)}
+.row{display:flex;gap:14px;align-items:center;justify-content:center;min-height:60px}
+#big{font-size:64px}
+#toast{position:absolute;top:64px;left:0;right:0;text-align:center;font-weight:800;font-size:22px;color:var(--accent);pointer-events:none;opacity:0;transition:opacity .4s}
+#end{justify-content:flex-start;overflow-y:auto;padding:32px 20px;gap:12px}
+#end>:first-child{margin-top:auto}#end>:last-child{margin-bottom:auto}
+#letter{background:var(--card);border-radius:16px;padding:18px 20px;max-width:340px;text-align:left;line-height:1.6;font-size:15px;font-family:Georgia,serif;box-shadow:0 6px 24px rgba(230,54,111,.18)}
+#letter p{margin:0 0 10px;max-width:none}
+#ask{text-align:center;max-width:320px}#sig{font-size:14px;color:var(--muted);margin-top:6px}
+#end{color:#111}
+#letter{color:#111}
+#letter p,#endText{color:#111}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="hud">
+    <div><small>Level</small><span id="lvl">1</span></div>
+    <div><small>Record</small>🏆 Level 5</div>
+    <div><small>Lives</small><span id="lives">●●●</span></div>
+  </div>
+  <div id="toast"></div>
+  <canvas id="c"></canvas>
+
+  <div class="overlay" id="start">
+    <div id="big">⭐</div>
+    <h1>Star Catcher</h1>
+    <p>Catch the falling stars ⭐ and dodge the bombs 💣. Move your finger or mouse to steer the basket. Can you beat the record, Level 5?</p>
+    <button id="play">Play</button>
+  </div>
+
+  <div class="overlay hidden love" id="end">
+    <div id="big2" style="font-size:56px">💌</div>
+    <h1 id="endTitle"></h1>
+    <p id="endText"></p>
+    <div id="letter">
+      <p><b>My Dearest love,</b></p>
+      <p>I still remember the movie night. You put your head on my shoulder, and my heart started racing. I stayed completely still because I didn't want that moment to end. I'm not going to lie, you have got this insane way of making my heart race without even trying, and I pretend like it's nothing.</p>
+      <p>I can't forget the games we played on Roblox either, like the dress game, and Ludo, where you love to cheat 😂 and somehow I still let you get away with it. Even those simple moments were the best part of my day, because I was spending them with you.</p>
+      <p>Even though you're unfunny 🤣🤣🤣, at least you are smart, elegant, thoughtful, cute, and you are just the woman that I see myself with in 20 years' time. At the end of the day, I love you for who you are.</p>
+      <p>Every time we saw each other made my day and my week special. Even though it was just simple dates, I was always looking forward to every single one, just to see you. It was never about where we went, it was always about you.</p>
+      <p>Sooo…</p>
+    </div>
+    <div id="ask"><b style="font-size:24px;color:var(--accent)">Lynchou, will you be my girlfriend? 💖</b><div id="sig"></div></div>
+    <div class="row" id="btns">
+      <button id="yes">Yes 💖</button>
+      <button id="no" class="no">No</button>
+    </div>
+    <p id="after" style="font-weight:700;color:var(--accent);font-size:20px"></p>
+  </div>
+</div>
+
+<script>
+// ✏️ Edit these to personalize
+const MY_NAME = "";             // put your name here, e.g. "Alex"
+const RECORD = 5;
+
+const cv = document.getElementById('c'), ctx = cv.getContext('2d');
+const $ = id => document.getElementById(id);
+let W, H, dpr;
+function resize(){
+  dpr = window.devicePixelRatio || 1;
+  const r = cv.getBoundingClientRect();
+  W = r.width; H = r.height;
+  cv.width = W*dpr; cv.height = H*dpr;
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+}
+addEventListener('resize', resize);
+
+let running=false, level, caught, lives, items, px, tx, spawnT, last, flip, herName="";
+
+// Difficulty: gentle up to the record, brutal afterwards
+function cfg(l){
+  if(l<=RECORD) return {speed:110+l*22, spawn:0.95-l*0.04, bad:0.08+l*0.03, basket:96-l*3, size:34, need:5, flip:false};
+  const k=l-RECORD;
+  return {speed:330+k*70, spawn:0.28, bad:0.55, basket:48, size:26, need:8, flip:k>=2};
+}
+
+function start(){
+  herName = 'Lynchou';
+  resize();
+  level=1; caught=0; lives=3; items=[]; spawnT=0; flip=false;
+  px=tx=W/2; last=performance.now(); running=true;
+  $('start').classList.add('hidden'); $('end').classList.add('hidden');
+  updateHud(); requestAnimationFrame(loop);
+}
+
+function updateHud(){
+  $('lvl').textContent = level;
+  $('lives').textContent = '●'.repeat(lives) + '○'.repeat(3-lives);
+}
+
+function toast(t){
+  const e=$('toast'); e.textContent=t; e.style.opacity=1;
+  setTimeout(()=>e.style.opacity=0,1400);
+}
+
+function loop(now){
+  if(!running) return;
+  const dt=Math.min((now-last)/1000,0.05); last=now;
+  const c=cfg(level);
+  px += (tx-px)*Math.min(1, dt*(level>RECORD?9:18));
+
+  spawnT-=dt;
+  if(spawnT<=0){
+    spawnT=c.spawn*(0.7+Math.random()*0.6);
+    items.push({x:c.size+Math.random()*(W-2*c.size), y:-c.size, bad:Math.random()<c.bad, wob:Math.random()*6});
+  }
+
+  const by=H-50;
+  for(let i=items.length-1;i>=0;i--){
+    const it=items[i];
+    it.y+=c.speed*dt;
+    if(level>RECORD) it.x+=Math.sin(now/200+it.wob)*70*dt;   // zig-zag in hard mode
+    if(it.y>by-14 && it.y<by+24 && Math.abs(it.x-px)<c.basket/2+c.size/3){
+      items.splice(i,1);
+      if(it.bad){ lives--; updateHud(); if(lives<=0) return gameOver(); }
+      else{
+        caught++;
+        if(caught>=c.need){ caught=0; level++; items=[]; updateHud();
+          if(level===RECORD+1) toast('🏆 Record beaten! Now it gets serious…');
+          else toast('Level '+level+' ✨'); }
+      }
+    } else if(it.y>H+40) items.splice(i,1);
+  }
+
+  draw(c,by);
+  requestAnimationFrame(loop);
+}
+
+function draw(c,by){
+  ctx.clearRect(0,0,W,H);
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  for(const it of items){
+    ctx.font=c.size+'px serif';
+    ctx.fillText(it.bad?'💣':'⭐', it.x, it.y);
+  }
+  // basket
+  ctx.fillStyle='#fca311';
+  const bw=c.basket, x=px-bw/2;
+  ctx.beginPath();
+  ctx.moveTo(x,by); ctx.lineTo(x+bw,by); ctx.lineTo(x+bw-8,by+26); ctx.lineTo(x+8,by+26); ctx.closePath();
+  ctx.fill();
+  if(level>RECORD && c.flip){
+    ctx.fillStyle='rgba(128,128,128,.8)'; ctx.font='14px system-ui';
+    ctx.fillText('↔ controls reversed', W/2, 14);
+  }
+}
+
+function gameOver(){
+  running=false;
+  const reached = level;
+  $('big2').textContent='💌';
+  $('endTitle').textContent = reached>RECORD ? 'Wow, Lynchou! 😍' : 'Game over, Lynchou 💕';
+  $('endText').textContent = (reached>RECORD ? 'You beat the record and reached level '+reached+'.' : 'You reached level '+reached+'.')+' But before you go, I wrote you something:';
+  $('sig').textContent = MY_NAME ? '— '+MY_NAME : '';
+  $('ask').style.display='';
+  $('after').textContent='';
+  $('btns').style.display='flex';
+  resetNo();
+  $('end').classList.remove('hidden');
+  $('end').scrollTop=0;
+}
+
+// Playful "No" button that runs away
+const no=$('no'); let noTries=0;
+const noTexts=['No','Are you sure? 🥺','Really?','Think again 😏','Nope, try Yes!','Too slow 😜'];
+function resetNo(){ noTries=0; no.textContent='No'; no.style.position=''; no.style.left=no.style.top=''; $('yes').style.transform=''; }
+function dodge(e){
+  e.preventDefault();
+  noTries++;
+  no.textContent=noTexts[Math.min(noTries,noTexts.length-1)];
+  no.style.position='fixed';
+  const pad=16, bw=no.offsetWidth, bh=no.offsetHeight;
+  no.style.left=(pad+Math.random()*(innerWidth-bw-2*pad))+'px';
+  no.style.top=(80+Math.random()*(innerHeight-bh-160))+'px';
+  $('yes').style.transform='scale('+Math.min(1+noTries*0.15,2)+')';
+}
+no.addEventListener('mouseenter',dodge);
+no.addEventListener('touchstart',dodge,{passive:false});
+no.addEventListener('click',dodge);
+
+$('yes').addEventListener('click',()=>{
+  $('btns').style.display='none';
+  $('ask').style.display='none';
+  $('big2').textContent='🥰';
+  $('endTitle').textContent='She said YES!';
+  $('endText').textContent='Best. Game. Ever. 💖';
+  $('after').textContent='Screenshot this & send it to me 😘';
+  confetti();
+});
+
+function confetti(){
+  for(let i=0;i<40;i++){
+    const s=document.createElement('div');
+    s.textContent=['💖','💕','💘','✨'][i%4];
+    s.style.cssText='position:fixed;top:-30px;left:'+Math.random()*100+'vw;font-size:'+(18+Math.random()*24)+'px;pointer-events:none;z-index:9;transition:transform '+(2+Math.random()*2)+'s linear,opacity 3s';
+    document.body.appendChild(s);
+    requestAnimationFrame(()=>{s.style.transform='translateY('+(innerHeight+80)+'px) rotate('+(Math.random()*360)+'deg)';});
+    setTimeout(()=>s.remove(),4500);
+  }
+}
+
+// Input
+function move(clientX){
+  const r=cv.getBoundingClientRect();
+  let x=clientX-r.left;
+  const c=cfg(level);
+  tx = (level>RECORD && c.flip) ? W-x : x;
+}
+cv.addEventListener('pointermove',e=>move(e.clientX));
+cv.addEventListener('pointerdown',e=>move(e.clientX));
+$('play').addEventListener('click',start);
+
+</script>
+</body>
+</html>
